@@ -1,0 +1,16 @@
+#
+# Rotación de logs de Woodlouse v1.1 TEST
+#
+# Cambia "ruta-de-instalación" por la ruta donde has desplegado Woodlouse
+# Cambia "usuario" y "grupo" por el usuario y grupo con el que ejecutas Woodlouse
+#
+/ruta-de-instalacion/woodlouse/logs/cambios.log {
+        size 5M
+        create 0644 usuario grupo
+        rotate 4
+}
+/ruta-de-instalacion/woodlouse/logs/operaciones.log {
+        size 5M
+        create 0644 usuario grupo
+        rotate 4
+}
