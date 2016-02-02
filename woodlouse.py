@@ -62,7 +62,7 @@ RUTA = sys.path[0]
 if len(sys.argv) == 1:
     print MENSA_BANNER + MENSA_LICEN + MENSA_USO
     sys.exit(1)
-    
+
 # If they received more than three or less than three arguments, and output Error
 elif len(sys.argv) - 1 != 5:
     print ERROR_ARG + MENSA_USO
@@ -92,7 +92,7 @@ ID_ZONA = sys.argv[1]
 
 NOMBRE = sys.argv[3]
 
-# API key 
+# API key
 # Check that you have 24 characters without spaces
 
 if len(sys.argv[4]) == 24 and not (' ' in sys.argv[4]):
@@ -164,10 +164,7 @@ NOACTUA = open(DIR_OPERACIONES, "w")
 # If it exists, the new data will be added at the end
 
 DIRCAMBIOS = RUTA+"/logs/changes.log"
-if os.path.isfile(DIRCAMBIOS):
-    ACTUA = open(DIRCAMBIOS, "a")
-else:
-    ACTUA = open(DIRCAMBIOS, "w")
+ACTUA = open(DIRCAMBIOS, "a")  # "a" includes writing if the file does not exist
 
 # Check the IP we have today
 # The function provides access various services to determine the IP
@@ -185,34 +182,19 @@ def ip_publica():
 
     """
 
-    SERVICIOS = ['http://icanhazip.com/', 'http://curlmyip.com/', 'http://ident.me/', 'http://ipof.in/txt/', 'http://ifconfig.me/ip/']
-    CONTADOR = 0
-    # Check availability
-    for SERVICIO in SERVICIOS:
-        SALIDA = []
+    for service in ['http://icanhazip.com/',
+                    'http://curlmyip.com/',
+                    'http://ident.me/',
+                    'http://ipof.in/txt/',
+                    'http://ifconfig.me/ip/']:
         try:
-            requests.get(SERVICIO)
+            IP = requests.get(service).text
+            return service, IP
         except requests.exceptions.ConnectionError:
-            CONTADOR = CONTADOR + 1
-            continue
-        # Check fr timeouts
-        try:
-            requests.get(url=SERVICIO, timeout=(4.0))
-        except requests.exceptions.ConnectionError:
-            CONTADOR = CONTADOR + 1
-            continue
-        # Launch request
-        try:
-            CONSULTA = requests.get(SERVICIO)
-            IP = CONSULTA.text
-            SALIDA = [SERVICIO, IP]
-        except requests.exceptions.ConnectionError:
-            CONTADOR = CONTADOR + 1
-            continue
-        # If no one is available, bad luck
-        if not SALIDA:
-            SALIDA = []
-        return SALIDA
+            pass
+
+    # If no one is available, bad luck
+    return None
 
 # Call to check function IP
 # And evaluation of results
