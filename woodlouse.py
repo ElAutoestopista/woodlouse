@@ -201,15 +201,14 @@ def ip_publica():
 
 IP_RESOURCE = ip_publica()
 
-if IP_RESOURCE:
-    RECURSO = IP_RESOURCE[0]
-    ACTUALIP = IP_RESOURCE[1]
-    MENSA_SERVICIO = "Using service"+RECURSO+" get IP "+ACTUALIP+"\n"
-    NOACTUA.write(FECHA+MENSA_SERVICIO)
-else:
+if not IP_RESOURCE:
     MENSA_SERVICIO = "No IP service available\n"
     NOACTUA.write(FECHA+MENSA_SERVICIO)
     sys.exit(1)
+
+RECURSO, ACTUALIP = IP_RESOURCE
+MENSA_SERVICIO = "Using service"+RECURSO+" get IP "+ACTUALIP+"\n"
+NOACTUA.write(FECHA+MENSA_SERVICIO)
 
 # Check entry into active version of the zone
 
