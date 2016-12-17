@@ -175,22 +175,22 @@ FECHA = MOMENTO.strftime('%d %b %Y %H:%M - ')
 # We build the paths to the log files.
 try:
     os.path.isdir(config.get('LOGS'))
-    LOGS = config.get('LOGS')
-    DIR_RUTA = RUTA + "/" + LOGS
+    DIR_RUTA = config.get('LOGS')
 except FileNotFoundError:
     print(ERROR_LOGDIR)
     DIR_RUTA = RUTA + config.get('LOGS')
     os.mkdir(DIR_RUTA)
 
 # The file where the last execution are stored always overwrites
-DIR_OPERACIONES = RUTA + "/" + LOGS + "/operations.log"
+DIR_OPERACIONES = DIR_RUTA + "operations.log"
 # The file where the changes are stored only be created if there
 # If it exists, the new data will be added at the end
-DIRCAMBIOS = RUTA + "/logs/changes.log"
+DIRCAMBIOS = DIR_RUTA + "changes.log"
 
 # Check the IP we have today
 # The function provides access various services to determine the IP
 # Published the team.
+
 
 def ip_publica():
     """
