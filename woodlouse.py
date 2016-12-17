@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 '''
- Woodlouse v1.1.4 NeXTGen
+ Woodlouse v2.0NeXTGen
 
   No-IP type script for the provider Gandi.net
 
@@ -13,6 +13,7 @@
 
   CHANGELOG:
   ----------
+      - Refactor for Python3.X
       - List of IP services for public consultation. Supports failover
       - Already use pylint! :)
       - PEP8 compliant !!
@@ -22,6 +23,7 @@
   USAGE:
   ------
 	python woodlouse.py zone TTL REGISTRY apikey (prod / test)
+
   TODO:
   -----
       - Error control: Currently, an error creating an entry
@@ -29,7 +31,7 @@
 	amount of waste.
 '''
 
-import xmlrpclib
+import xmlrpc
 import sys
 import datetime
 import os
@@ -39,10 +41,11 @@ import time
 # If no arguments, and use the program banner is received
 # We define the messages that build exits
 
-MENSA_BANNER = "Woodlouse v1.1.1 NeXTGen - Sergio Fernández Cordero 2014\n"
-MENSA_LICEN = "Este programa se distribuye con licencia GPLv3 - https://www.gnu.org/copyleft/gpl.html .\n"
-MENSA_USO = "\nUsage: python woodlouse.py zone ttl REGISTRY apikey (prod/test)"
-ERROR_ARG = "Error: Woodlouse only accepts 3 arguments.\n"
+MENSA_BANNER = "Woodlouse v2.0 NeXTGen - Sergio Fernández Cordero 2016\n"
+MENSA_LICEN = "This program is distributed with GPLv3 license - https://www.gnu.org/copyleft/gpl.html .\n"
+MENSA_USO = "\nUsage: python woodlouse.py"
+CONF_ERROR = "Configuration file config.py not found"
+ERROR_ARG = "Error: No arguments accepted. Please use config.py\n"
 ERROR_TTL = "Error: TTL must be an integer.\n"
 ERROR_ENV = "Error: Environment must be prod o test"
 ERROR_API = "Error: Invalid API key."
@@ -55,28 +58,48 @@ ACTIVA_KO = "Activation error. Returned "
 DELETE_OK = "Deletion succesful. Returned "
 DELETE_KO = "Deletion error. Returned "
 
+
+#Useful Functions
+def log_noactua(msg):
+    try:
+        noactua = open(DIR_OPERACIONES, "a")
+        noactua.write(msg)
+        noactua.close()
+    except OSError:
+        print("Error while logging")
+        sys.exit(1)
+
+
+def log_actua(msg):
+    try:
+        actua = open(DIRCAMBIOS, "a")  # "a" includes writing if the file does not exist
+        actua.write(msg)
+        actua.close()
+    except OSError:
+        print("Error while logging")
+        sys.exit(1)
+
+
+# Check for config.py file
+try:
+    from config import config
+except FileNotFoundError:
+    print(MENSA_BANNER + CONF_ERROR)
+    sys.exit(1)
+
 # Locate the current working path, where it is the script
-
 RUTA = sys.path[0]
-
-if len(sys.argv) == 1:
-    print MENSA_BANNER + MENSA_LICEN + MENSA_USO
-    sys.exit(1)
-
-# If they received more than three or less than three arguments, and output Error
-elif len(sys.argv) - 1 != 5:
-    print ERROR_ARG + MENSA_USO
-    sys.exit(1)
 
 # Check that last argument as TTL is an integer
 # Then we will turn to type int
 
 # TTL. st your discrection
 
-if sys.argv[2].isdigit():
-    TIEMPO_VIDA = int(sys.argv[2])
-else:
-    print ERROR_TTL + MENSA_USO
+try:
+    if isinstance(config.get('TTL'), int):
+        TIEMPO_VIDA = config.get('TTL')
+except TypeError:
+    print(ERROR_TTL)
     sys.exit(1)
 
 # Assign the input arguments
@@ -84,62 +107,62 @@ else:
 # If the area is used by multiple domains, registration
 # Will be created in all of them.
 
-ID_ZONA = sys.argv[1]
-
+try:
+    if isinstance(config.get('ZONE'), str):
+        ID_ZONA = config.get('ZONE')
+except TypeError:
+    print(ERROR_ZONA_CADENA)
+    sys.exit(1)
 
 # Name of the record that we want to create
 # (Do not put the domain name back, it's automatically added)
-
-NOMBRE = sys.argv[3]
+try:
+    if isinstance(config.get('REGISTRY'), str):
+        NOMBRE = config.get('ZONE')
+except TypeError:
+    print(ERROR_REGISTRO_CADENA)
+    sys.exit(1)
 
 # API key
 # Check that you have 24 characters without spaces
-
-if len(sys.argv[4]) == 24 and not (' ' in sys.argv[4]):
-    APIKEY = sys.argv[4]
-else:
-    print ERROR_API + MENSA_USO
+try:
+    if len(config.get('APIKEY')) == 24 and not (' ' in config.get('APIKEY')):
+        APIKEY = config.get('APIKEY')
+except ValueError:
+    print(ERROR_API)
     sys.exit(1)
 
 # Environment: Production o Test (OT&E)
-if (sys.argv[5] == "prod" or sys.argv[5] == "test"):
-    ENTORNO = sys.argv[5]
-else:
-    print ERROR_ENV + MENSA_USO
+try:
+    if config.get('ZONE') == "prod" or config.get('ZONE') == "test":
+        ENTORNO = config.get('ZONE')
+        # Check environment is PROD or TEST
+        if ENTORNO == "prod":
+            # Load the API Gandi.net
+            # Production environment
+            API = xmlrpc.client.ServerProxy('https://rpc.gandi.net/xmlrpc/')
+        elif ENTORNO == "test":
+            # Test environment(OT&E)
+            API = xmlrpc.client.ServerProxy('https://rpc.ote.gandi.net/xmlrpc/')
+        else:
+            API = "Null"
+except ValueError:
+    print(ERROR_ENV)
     sys.exit(1)
 
-# Check REGISTRY and ZONE are strings
-
-if not isinstance(NOMBRE, str):
-    print ERROR_REGISTRO_CADENA + MENSA_USO
-    sys.exit(1)
-if not isinstance(ID_ZONA, str):
-    print ERROR_ZONA_CADENA + MENSA_USO
-    sys.exit(1)
-
-# Check environment is PROD or TEST
-if ENTORNO == "prod":
-    # Load the API Gandi.net
-    # Production environment
-
-    API = xmlrpclib.ServerProxy('https://rpc.gandi.net/xmlrpc/')
-elif ENTORNO == "test":
-    # Test environment(OT&E)
-
-    API = xmlrpclib.ServerProxy('https://rpc.ote.gandi.net/xmlrpc/')
-else:
-    print ERROR_ZONA_CADENA + MENSA_USO
-    sys.exit(1)
 
 # Initial definitions
-
-ZONA = API.domain.zone.list(APIKEY, {'name': ID_ZONA})
-if not ZONA:
-    print "Zone "+ID_ZONA+" doesn't exists"
+try:
+    ZONA = API.domain.zone.list(APIKEY, {'name': ID_ZONA})
+    if not ZONA:
+        print("Zone " + ID_ZONA + " doesn't exists")
+        sys.exit(1)
+    else:
+        ZONE_ID = ZONA[0]['id']
+        ZONE_NOMBRE = ZONA[0]['name']
+except NameError:
+    print(ERROR_API)
     sys.exit(1)
-else:
-    ZONE_ID = ZONA[0]['id']
-    ZONE_NOMBRE = ZONA[0]['name']
 
 # We define the date and time of execution
 
@@ -150,26 +173,24 @@ FECHA = MOMENTO.strftime('%d %b %Y %H:%M - ')
 # Check that the directory exists logs
 
 # We build the paths to the log files.
-
-DIR_RUTA = RUTA+"/logs"
-if not os.path.isdir(DIR_RUTA):
-    print ERROR_LOGDIR
+try:
+    os.path.isdir(config.get('LOGS'))
+    LOGS = config.get('LOGS')
+    DIR_RUTA = RUTA + "/" + LOGS
+except FileNotFoundError:
+    print(ERROR_LOGDIR)
+    DIR_RUTA = RUTA + config.get('LOGS')
     os.mkdir(DIR_RUTA)
 
 # The file where the last execution are stored always overwrites
-DIR_OPERACIONES = RUTA+"/logs/operations.log"
-NOACTUA = open(DIR_OPERACIONES, "w")
-
+DIR_OPERACIONES = RUTA + "/" + LOGS + "/operations.log"
 # The file where the changes are stored only be created if there
 # If it exists, the new data will be added at the end
-
-DIRCAMBIOS = RUTA+"/logs/changes.log"
-ACTUA = open(DIRCAMBIOS, "a")  # "a" includes writing if the file does not exist
+DIRCAMBIOS = RUTA + "/logs/changes.log"
 
 # Check the IP we have today
 # The function provides access various services to determine the IP
 # Published the team.
-
 
 def ip_publica():
     """
@@ -196,119 +217,116 @@ def ip_publica():
     # If no one is available, bad luck
     return None
 
+
 # Call to check function IP
 # And evaluation of results
-
-IP_RESOURCE = ip_publica()
-
-if not IP_RESOURCE:
+try:
+    IP_RESOURCE = ip_publica()
+except ValueError:
     MENSA_SERVICIO = "No IP service available\n"
-    NOACTUA.write(FECHA+MENSA_SERVICIO)
-    sys.exit(1)
+    log_noactua(FECHA + MENSA_SERVICIO)
+try:
+    RECURSO, ACTUALIP = IP_RESOURCE
+    MENSA_SERVICIO = "Using service" + RECURSO + " get IP " + ACTUALIP + "\n"
+    COMPRUEBA_REG1 = "Checking registry " + NOMBRE
+    COMPRUEBA_REG2 = " an active version of the zone exists "
+    MENSA_ID = " , id:" + str(ZONE_ID) + "\n"
+    log_noactua(FECHA + MENSA_SERVICIO)
+    log_noactua(FECHA + COMPRUEBA_REG1 + COMPRUEBA_REG2 + ID_ZONA + MENSA_ID)
+except ConnectionError:
+    MENSA_SERVICIO = "Service " + RECURSO + "unavailable"
+    log_noactua(FECHA + MENSA_SERVICIO)
 
-RECURSO, ACTUALIP = IP_RESOURCE
-MENSA_SERVICIO = "Using service"+RECURSO+" get IP "+ACTUALIP+"\n"
-NOACTUA.write(FECHA+MENSA_SERVICIO)
-
-# Check entry into active version of the zone
-
-COMPRUEBA_REG1 = "Checking registry "+NOMBRE
-COMPRUEBA_REG2 = " an active version of the zone exists "
-MENSA_ID = " , id:"+str(ZONE_ID)+"\n"
-NOACTUA.write(FECHA+COMPRUEBA_REG1+COMPRUEBA_REG2+ID_ZONA+MENSA_ID)
 
 # We assume that the current version is the latest. If not, it will not function.
 
-REGISTRO = API.domain.zone.record.list(APIKEY, ZONE_ID, 0, {'name': NOMBRE})
-
-if not REGISTRO:
-    ACTUA.write(FECHA+"Registry doesn't exists\n")
-    NOACTUA.write(FECHA+"Registry doesn't exists\n")
-
-    VER_NUEVA = API.domain.zone.version.new(APIKEY, ZONE_ID)
-    ACTUA.write(FECHA+"Creating a new version of zone: "+str(VER_NUEVA)+"\n")
-
-    ACTUA.write(FECHA+"Activating new version\n")
-    ACTIVA_NUEVA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_NUEVA)
-    if ACTIVA_NUEVA:
-        ACTUA.write(FECHA+ACTIVA_OK+str(ACTIVA_NUEVA)+"\n")
-    else:
-        ACTUA.write(FECHA+ACTIVA_KO+str(ACTIVA_NUEVA)+"\n")
-        ACTUA.close()
-        sys.exit(1)
-
-    VER_ANTIGUA = VER_NUEVA - 1
-    CREA_ZONA = "Creating entry "+NOMBRE+" in inactive zone "
-    ACTUA.write(FECHA+CREA_ZONA+str(VER_ANTIGUA)+"\n")
-    NUEVA_ENTRADA = API.domain.zone.record.add(APIKEY, ZONE_ID, VER_ANTIGUA, {'name': NOMBRE, 'type': 'A', 'value': ACTUALIP, 'ttl': int(TIEMPO_VIDA)})
-    ACTUA.write(FECHA+"Created "+NUEVA_ENTRADA['name']+" registry in zone "+ZONE_NOMBRE+" , version "+str(VER_ANTIGUA)+"\n")
-
-    ACTUA.write(FECHA+"Reactivating modified version of the zoen\n")
-    ACTIVA_ANTIGUA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_ANTIGUA)
-    if ACTIVA_ANTIGUA:
-        ACTUA.write(FECHA+ACTIVA_OK+str(ACTIVA_NUEVA)+"\n")
-    else:
-        ACTUA.write(FECHA+ACTIVA_KO+str(ACTIVA_NUEVA)+"\n")
-        ACTUA.close()
-        sys.exit(1)
-
-    ACTUA.write(FECHA+"Deleting temporary zone version\n")
-    DELETE_NUEVA = API.domain.zone.version.delete(APIKEY, ZONE_ID, VER_NUEVA)
-    if DELETE_NUEVA:
-        ACTUA.write(FECHA+DELETE_OK+str(ACTIVA_NUEVA)+"\n")
-        ACTUA.close()
-        sys.exit(0)
-    else:
-        ACTUA.write(FECHA+DELETE_KO+str(ACTIVA_NUEVA)+"\n")
-        ACTUA.close()
-        sys.exit(1)
-
-else:
-
+try:
+    REGISTRO = API.domain.zone.record.list(APIKEY, ZONE_ID, 0, {'name': NOMBRE})
     IP_DNS = REGISTRO[0]['value']
     IP_ACTUAL = ACTUALIP.rstrip()
-    NOACTUA.write(FECHA+"Registry exists\n")
-    NOACTUA.write(FECHA+"Checking for Ip change\n")
+    log_noactua(FECHA + "Registry exists\n")
+    log_noactua(FECHA + "Checking for Ip change\n")
     if IP_DNS == IP_ACTUAL:
-        NOACTUA.write(FECHA+"IP hasn't changed. Nothing to do\n")
-        NOACTUA.close()
+        log_noactua(FECHA + "IP hasn't changed. Nothing to do\n")
         sys.exit(0)
     else:
-        ACTUA.write(FECHA+"IP has changed. Updating registry\n")
+        log_actua(FECHA + "IP has changed. Updating registry\n")
         VER_NUEVA = API.domain.zone.version.new(APIKEY, ZONE_ID)
-        ACTUA.write(FECHA+"Creating new version of the zone: "+str(VER_NUEVA)+"\n")
-        ACTUA.write(FECHA+"Activating new version\n")
+        log_actua(FECHA + "Creating new version of the zone: " + str(VER_NUEVA) + "\n")
+        log_actua(FECHA + "Activating new version\n")
         ACTIVA_NUEVA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_NUEVA)
         if ACTIVA_NUEVA:
-            ACTUA.write(FECHA+ACTIVA_OK+str(ACTIVA_NUEVA)+"\n")
+            log_actua(FECHA + ACTIVA_OK + str(ACTIVA_NUEVA) + "\n")
         else:
-            ACTUA.write(FECHA+ACTIVA_KO+str(ACTIVA_NUEVA)+"\n")
-            ACTUA.close()
+            log_actua(FECHA + ACTIVA_KO + str(ACTIVA_NUEVA) + "\n")
             sys.exit(1)
 
-        ACTUA.write(FECHA+"Updating registry in original zone\n")
+        log_actua(FECHA + "Updating registry in original zone\n")
         VER_ANTIGUA = VER_NUEVA - 1
         ENTRADA = API.domain.zone.record.list(APIKEY, ZONE_ID, VER_ANTIGUA, {'name': NOMBRE})
         ENTRADA_ID = ENTRADA[0]['id']
-        ACTUALIZA_ENTRADA = API.domain.zone.record.update(APIKEY, ZONE_ID, VER_ANTIGUA, {'id': ENTRADA_ID}, {'name': NOMBRE, 'type': 'A', 'value': ACTUALIP, 'ttl': int(TIEMPO_VIDA)})
+        ACTUALIZA_ENTRADA = API.domain.zone.record.update(APIKEY, ZONE_ID, VER_ANTIGUA, {'id': ENTRADA_ID},
+                                                          {'name': NOMBRE, 'type': 'A', 'value': ACTUALIP,
+                                                           'ttl': int(TIEMPO_VIDA)})
 
-        ACTUA.write(FECHA+"Reactivating original zone\n")
+        log_actua(FECHA + "Reactivating original zone\n")
         ACTIVA_ANTIGUA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_ANTIGUA)
         if ACTIVA_ANTIGUA:
-            ACTUA.write(FECHA+ACTIVA_OK+str(ACTIVA_ANTIGUA)+"\n")
+            log_actua(FECHA + ACTIVA_OK + str(ACTIVA_ANTIGUA) + "\n")
         else:
-            ACTUA.write(FECHA+ACTIVA_KO+str(ACTIVA_ANTIGUA)+"\n")
-            ACTUA.close()
+            log_actua(FECHA + ACTIVA_KO + str(ACTIVA_ANTIGUA) + "\n")
             sys.exit(1)
 
-        ACTUA.write(FECHA+"Removing new version\n")
+        log_actua(FECHA + "Removing new version\n")
         DELETE_NUEVA = API.domain.zone.version.delete(APIKEY, ZONE_ID, VER_NUEVA)
         if DELETE_NUEVA:
-            ACTUA.write(FECHA+DELETE_OK+str(DELETE_NUEVA)+"\n")
-            ACTUA.write(FECHA+"Registry entry "+NOMBRE+" with values:\n"+FECHA+"Name: "+ACTUALIZA_ENTRADA[0]['name']+"\n"+FECHA+"IP: "+ACTUALIZA_ENTRADA[0]['value']+"\n"+FECHA+"DNS Registry Type: "+ACTUALIZA_ENTRADA[0]['type']+"\n"+FECHA+"TTL: "+str(ACTUALIZA_ENTRADA[0]['ttl'])+" has been updated\n")
-            ACTUA.close()
+            log_actua(FECHA + DELETE_OK + str(DELETE_NUEVA) + "\n")
+            log_actua(
+                FECHA + "Registry entry " + NOMBRE + " with values:\n" + FECHA + "Name: " + ACTUALIZA_ENTRADA[0][
+                    'name'] + "\n" + FECHA + "IP: " + ACTUALIZA_ENTRADA[0][
+                    'value'] + "\n" + FECHA + "DNS Registry Type: " + ACTUALIZA_ENTRADA[0][
+                    'type'] + "\n" + FECHA + "TTL: " + str(ACTUALIZA_ENTRADA[0]['ttl']) + " has been updated\n")
             sys.exit(0)
         else:
-            ACTUA.write(FECHA+DELETE_KO+str(DELETE_NUEVA)+"\n")
-            ACTUA.close()
+            log_actua(FECHA + DELETE_KO + str(DELETE_NUEVA) + "\n")
             sys.exit(1)
+except ReferenceError:
+    log_actua(FECHA + "Registry doesn't exists\n")
+    log_noactua(FECHA + "Registry doesn't exists\n")
+
+    VER_NUEVA = API.domain.zone.version.new(APIKEY, ZONE_ID)
+    log_actua(FECHA + "Creating a new version of zone: " + str(VER_NUEVA) + "\n")
+
+    log_actua(FECHA + "Activating new version\n")
+    ACTIVA_NUEVA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_NUEVA)
+    if ACTIVA_NUEVA:
+        log_actua(FECHA + ACTIVA_OK + str(ACTIVA_NUEVA) + "\n")
+    else:
+        log_actua(FECHA + ACTIVA_KO + str(ACTIVA_NUEVA) + "\n")
+        sys.exit(1)
+
+    VER_ANTIGUA = VER_NUEVA - 1
+    CREA_ZONA = "Creating entry " + NOMBRE + " in inactive zone "
+    log_actua(FECHA + CREA_ZONA + str(VER_ANTIGUA) + "\n")
+    NUEVA_ENTRADA = API.domain.zone.record.add(APIKEY, ZONE_ID, VER_ANTIGUA,
+                                               {'name': NOMBRE, 'type': 'A', 'value': ACTUALIP,
+                                                'ttl': int(TIEMPO_VIDA)})
+    log_actua(FECHA + "Created " + NUEVA_ENTRADA['name'] + " registry in zone " + ZONE_NOMBRE + " , version " + str(
+        VER_ANTIGUA) + "\n")
+
+    log_actua(FECHA + "Reactivating modified version of the zoen\n")
+    ACTIVA_ANTIGUA = API.domain.zone.version.set(APIKEY, ZONE_ID, VER_ANTIGUA)
+    if ACTIVA_ANTIGUA:
+        log_actua(FECHA + ACTIVA_OK + str(ACTIVA_NUEVA) + "\n")
+    else:
+        log_actua(FECHA + ACTIVA_KO + str(ACTIVA_NUEVA) + "\n")
+        sys.exit(1)
+
+    log_actua(FECHA + "Deleting temporary zone version\n")
+    DELETE_NUEVA = API.domain.zone.version.delete(APIKEY, ZONE_ID, VER_NUEVA)
+    if DELETE_NUEVA:
+        log_actua(FECHA + DELETE_OK + str(ACTIVA_NUEVA) + "\n")
+        sys.exit(0)
+    else:
+        log_actua(FECHA + DELETE_KO + str(ACTIVA_NUEVA) + "\n")
+        sys.exit(1)

@@ -1,0 +1,11 @@
+# Configuration file. See Documentation for detals
+
+config = {
+    "ZONE": "Your DNS zone",
+    "TTL": "TTL of DNS registry",
+    "REGISTRY": "A field of dns registry",
+    "APIKEY": "GANDI.net API Key",
+    "ENV": "Prod or Test (OT & E)",
+    "TALK": "Indicates if talk functionality is activated or not. (Yes or No)",
+    "LOGS": "Directory where logs will be stored"
+}

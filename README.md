@@ -1,7 +1,7 @@
 # woodlouse
 Woodlouuse - No-IP script for provider Gandi.net
 ###########################################################################
-NextGen Woodlouse TEST v1.1.4 - No-IP script for provider Gandi.net
+NextGen Woodlouse TEST v2.0 - No-IP script for provider Gandi.net
 ###########################################################################
 
 Sergio Fernandez Cordero <sergio@fernandezcordero.net>
@@ -20,6 +20,7 @@ http://www.fernandezcordero.net/blog
 
 Implemented the new system logs: Now executions are recorded in the logs / file and operations.log
 changes in log file entry / changes.log, including rotation. (Issue # 3)
+Refactor for Python3.X
 
 
 2.- LICENSE AND DISCLAIMER
