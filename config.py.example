@@ -2,9 +2,9 @@
 
 config = {
     "ZONE": "Your DNS zone",
-    "TTL": "TTL of DNS registry",
+    "TTL": "TTL of DNS registry. Must be a number greater than 300 (API imposition)",
     "REGISTRY": "A field of dns registry",
     "APIKEY": "GANDI.net API Key",
     "ENV": "Prod or Test (OT & E)",
-    "LOGS": "Directory where logs will be stored"
+    "LOGS": "Directory where logs will be stored. Will be created if doesn't exists"
 }
