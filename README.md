@@ -1,9 +1,23 @@
-# woodlouse
 ## Woodlouse - No-IP script for provider Gandi.net
 
-Sergio Fernandez Cordero <sergio@fernandezcordero.net>
-twitter: http: //twitter.com/elautoestopista
-http://www.fernandezcordero.net/blog
+Woodlouse is a simple python script which can dinamically change
+your DNS registry in a Gandi.net domain when your public IP
+changes, just like a no-ip but your own!
+
+Just get an API key, the information about your domain, and put
+a cron job to enjoy!
+
+Executed every 10 minutes, woodlouse will check your public IP 
+using five different services. Then, will check against Gandi.net
+which IP is actually configured in the DNS registry you specified.
+If the IP is different, woodlouse automatically will change the
+DNS registry via the Gandi.net Domain API XML-RPC. Several time
+later (from seconds to 48h, due to DNS propagation), the registry
+will point to the new IP from every Internet.
+
+Woodlouse is ideal for home users who want an Internet service
+hosted at home, but don't want or can't afford a static public IP.
+It has been working for me at home since years!
 
 ##### Requires Python3.X. For Python2.X, use v1.x instead
 
@@ -40,8 +54,7 @@ config file. Fields are below:
 using that area.
 
 **TTL**: The lifetime should be a very low value, so that other DNS servers have little time entry
-cached, so they have to frequently check and take the changes that occur. For instance
-5 minutes or less.
+cached, so they have to frequently check and take the changes that occur. Note that Gandi.net has a minimum of 300 secs.
 
 **REGISTRY**: Registry value you want to create, without the domain name (as an area can be used in multiple domains).
 For example: To create "www.midominio.com" record would be "www". At this time, only A registry types are supported.
